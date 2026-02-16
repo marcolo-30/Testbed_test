@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: process-worker
+  namespace: testbed
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: process-worker
+  template:
+    metadata:
+      labels:
+        app: process-worker
+    spec:
+      containers:
+      - name: process-worker
+        image: 192.168.0.35:5000/process-worker:latest
+        ports:
+        - containerPort: 8001
+        envFrom:
+        - configMapRef:
+            name: app-config
+        env:
+        - name: SERVICE_NAME
+          value: "process-worker"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8001
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+        volumeMounts:
+        - name: db-storage
+          mountPath: /data
+      volumes:
+      - name: db-storage
+        persistentVolumeClaim:
+          claimName: sqlite-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sqlite-pvc
+  namespace: testbed
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # storageClassName: <your-storage-class> # Uncomment and specify if needed

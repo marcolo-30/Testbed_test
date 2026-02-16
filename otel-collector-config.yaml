@@ -1,0 +1,23 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  # Exporter for metrics, to be scraped by Prometheus
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+
+  # Exporter for traces, which will just print them to the console logs
+  logging:
+    loglevel: info
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      exporters: [logging]

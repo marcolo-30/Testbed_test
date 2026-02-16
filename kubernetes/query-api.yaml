@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-api
+  namespace: testbed
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: query-api
+  template:
+    metadata:
+      labels:
+        app: query-api
+    spec:
+      containers:
+      - name: query-api
+        image: 192.168.0.35:5000/query-api:latest
+        ports:
+        - containerPort: 8002
+        envFrom:
+        - configMapRef:
+            name: app-config
+        env:
+        - name: SERVICE_NAME
+          value: "query-api"
+        - name: GUNICORN_WORKERS
+          value: "1"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8002
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "128Mi"
+          limits:
+            cpu: "1000m"
+            memory: "256Mi"
+        volumeMounts:
+        - name: db-storage
+          mountPath: /data
+          readOnly: true
+      volumes:
+      - name: db-storage
+        persistentVolumeClaim:
+          claimName: sqlite-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: query-api
+  namespace: testbed
+spec:
+  selector:
+    app: query-api
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8002

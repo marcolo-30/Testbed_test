@@ -1,0 +1,66 @@
+services:
+  # The redis service is not included, as it runs on the external ubuntu VM
+
+  ingest-api:
+    build:
+      context: ./services
+      dockerfile: ingest_api/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # Point to the IP of your Ubuntu VM where Redis is running
+      - REDIS_HOST=192.168.0.35
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SERVICE_NAME=ingest-api
+
+  process-worker:
+    build:
+      context: ./services
+      dockerfile: process_worker/Dockerfile
+    environment:
+      - REDIS_HOST=192.168.0.35
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SERVICE_NAME=process-worker
+      - DB_PATH=/data/events.db
+    volumes:
+      - sqlite_data:/data
+
+  query-api:
+    build:
+      context: ./services
+      dockerfile: query_api/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - REDIS_HOST=192.168.0.35
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SERVICE_NAME=query-api
+      - DB_PATH=/data/events.db
+    volumes:
+      - sqlite_data:/data
+
+  simulator:
+    build:
+      context: ./services
+      dockerfile: simulator/Dockerfile
+    environment:
+      - INGEST_API_URL=http://ingest-api:8000
+      - QUERY_API_URL=http://query-api:8002
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SERVICE_NAME=simulator
+      - SIM_DURATION_SECONDS=3600
+    depends_on:
+      - ingest-api
+      - query-api
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.91.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "8889:8889" # Prometheus exporter endpoint
+
+volumes:
+  sqlite_data:
