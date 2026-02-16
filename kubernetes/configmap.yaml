@@ -5,19 +5,19 @@ metadata:
   namespace: testbed
 data:
   # -- General Settings --
-  # Point to the in-cluster service name for the external Redis
-  REDIS_HOST: "redis-external.testbed.svc.cluster.local"
+  REDIS_HOST: "192.168.0.35"
   DB_PATH: "/data/events.db"
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability.svc.cluster.local:4317"
+  # This will be overridden by the Downward API in the deployment specs
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:32317"
   DEPLOYMENT_ENVIRONMENT: "testbed"
 
   # -- API Settings --
   INGEST_API_URL: "http://ingest-api.testbed.svc.cluster.local"
   QUERY_API_URL: "http://query-api.testbed.svc.cluster.local"
-  CPU_WORK_MS: "10" # Simulate 10ms of CPU work per request
+  CPU_WORK_MS: "10"
 
   # -- Simulator Settings --
-  SIM_DURATION_SECONDS: "3600" # 1 hour
+  SIM_DURATION_SECONDS: "3600"
   SIM_INGEST_RPS: "10"
   SIM_POLL_INTERVAL_SECONDS: "0.5"
   SIM_POLL_TIMEOUT_SECONDS: "10"

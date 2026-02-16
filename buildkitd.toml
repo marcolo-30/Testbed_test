@@ -1,0 +1,6 @@
+# This configuration file explicitly tells the BuildKit daemon
+# to treat the specified registry as an insecure HTTP endpoint.
+
+[registry."192.168.0.35:5000"]
+  http = true
+  insecure = true

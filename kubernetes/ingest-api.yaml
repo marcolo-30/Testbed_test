@@ -13,11 +13,19 @@ spec:
       labels:
         app: ingest-api
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: clus1
       containers:
       - name: ingest-api
         image: 192.168.0.35:5000/ingest-api:latest
         ports:
         - containerPort: 8000
+        # Override the container's command to correctly construct the endpoint URL
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            export OTEL_EXPORTER_OTLP_ENDPOINT="http://${HOST_IP}:32317"
+            exec gunicorn -w ${GUNICORN_WORKERS:-1} -k uvicorn.workers.UvicornWorker main:app -b 0.0.0.0:8000
         envFrom:
         - configMapRef:
             name: app-config
@@ -25,11 +33,15 @@ spec:
         - name: SERVICE_NAME
           value: "ingest-api"
         - name: GUNICORN_WORKERS
-          value: "1" # Constrain for RPi/Jetson
+          value: "1"
         - name: NODE_NAME
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
         livenessProbe:
           httpGet:
             path: /health

@@ -13,11 +13,19 @@ spec:
       labels:
         app: process-worker
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: clus1
       containers:
       - name: process-worker
         image: 192.168.0.35:5000/process-worker:latest
         ports:
         - containerPort: 8001
+        # Override the container's command to correctly construct the endpoint URL
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            export OTEL_EXPORTER_OTLP_ENDPOINT="http://${HOST_IP}:32317"
+            exec python main.py
         envFrom:
         - configMapRef:
             name: app-config
@@ -28,6 +36,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: HOST_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
         livenessProbe:
           httpGet:
             path: /health
