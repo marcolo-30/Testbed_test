@@ -13,19 +13,15 @@ spec:
       labels:
         app: query-api
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: clus1
+      hostAliases:
+      - ip: "10.43.138.250"
+        hostnames:
+        - "otel-collector.observability.svc.cluster.local"
       containers:
       - name: query-api
         image: 192.168.0.35:5000/query-api:latest
         ports:
         - containerPort: 8002
-        # Override the container's command to correctly construct the endpoint URL
-        command: ["/bin/sh", "-c"]
-        args:
-          - |
-            export OTEL_EXPORTER_OTLP_ENDPOINT="http://${HOST_IP}:32317"
-            exec gunicorn -w ${GUNICORN_WORKERS:-1} -k uvicorn.workers.UvicornWorker main:app -b 0.0.0.0:8002
         envFrom:
         - configMapRef:
             name: app-config
@@ -38,10 +34,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        - name: HOST_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.hostIP
         livenessProbe:
           httpGet:
             path: /health
@@ -56,19 +48,18 @@ spec:
           periodSeconds: 10
         resources:
           requests:
-            cpu: "250m"
+            cpu: "75m"
             memory: "128Mi"
           limits:
-            cpu: "1000m"
-            memory: "256Mi"
+            cpu: "300m"
+            memory: "192Mi"
         volumeMounts:
         - name: db-storage
           mountPath: /data
           readOnly: true
       volumes:
       - name: db-storage
-        persistentVolumeClaim:
-          claimName: sqlite-pvc
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

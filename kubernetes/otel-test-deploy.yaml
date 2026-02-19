@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-test
+  namespace: testbed
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: otel-test
+  template:
+    metadata:
+      labels:
+        app: otel-test
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: n-node   # cambia a clus1 / n-node cuando migres
+      containers:
+      - name: otel-test
+        image: python:3.11-slim
+        command: ["/bin/sh","-c"]
+        args:
+          - |
+            pip -q install opentelemetry-sdk opentelemetry-exporter-otlp && \
+            python /app/main.py
+        env:
+        - name: SERVICE_NAME
+          value: "otel-test"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector.observability:4318"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        volumeMounts:
+        - name: script
+          mountPath: /app
+      volumes:
+      - name: script
+        configMap:
+          name: otel-test-script

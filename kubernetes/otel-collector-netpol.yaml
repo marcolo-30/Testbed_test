@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-testbed-to-otel-collector
+  namespace: observability
+spec:
+  # Apply this policy to the OpenTelemetry Collector pod
+  podSelector:
+    matchLabels:
+      app: otel-collector
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    # Allow connections from any pod in a namespace with this label
+    - namespaceSelector:
+        matchLabels:
+          # The 'testbed' namespace must have this label
+          name: testbed
+    ports:
+    # Allow traffic on the OTLP HTTP port
+    - protocol: TCP
+      port: 4318

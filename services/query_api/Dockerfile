@@ -1,20 +1,21 @@
-# Use a multi-arch base image
-FROM --platform=$BUILDPLATFORM python:3.9-slim
+# Multi-arch base image (selected automatically by buildx)
+FROM python:3.9-slim
 
 WORKDIR /app
 
-# Add shared module to PYTHONPATH
-ENV PYTHONPATH "${PYTHONPATH}:/app"
+# Ensure shared module import works
+ENV PYTHONPATH="/app"
 
-# Copy shared module first (path is relative to the 'services' build context)
+# Copy shared module
 COPY shared /app/shared
 
-# Copy requirements and install (path is relative to the 'services' build context)
-COPY query_api/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+COPY query_api/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy the application code (path is relative to the 'services' build context)
-COPY query_api/ .
+# Copy application code
+COPY query_api/ /app/
 
-# Use Gunicorn for production. Use shell form to allow env var expansion.
-CMD exec gunicorn -w ${GUNICORN_WORKERS:-1} -k uvicorn.workers.UvicornWorker main:app -b 0.0.0.0:8002
+# Gunicorn with Uvicorn worker; expand env var and exec for proper signals
+ENTRYPOINT ["/bin/sh","-c"]
+CMD ["exec gunicorn -w ${GUNICORN_WORKERS:-1} -k uvicorn.workers.UvicornWorker main:app -b 0.0.0.0:8002"]

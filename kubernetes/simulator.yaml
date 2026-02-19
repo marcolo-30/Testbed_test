@@ -13,17 +13,30 @@ spec:
       labels:
         app: simulator
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: clus1
+      # --- BEGIN DNS FIX (HostAliases for Ingest API) ---
+      # Explicitly configure the pod's DNS to solve resolution issues.
+      dnsPolicy: "None"
+      dnsConfig:
+        nameservers:
+          - "10.43.0.10" # The ClusterIP of the kube-dns service
+        searches:
+          - testbed.svc.cluster.local
+          - svc.cluster.local
+          - cluster.local
+        options:
+          - name: ndots
+            value: "5"
+      hostAliases:
+      - ip: "10.43.138.250" # HostAlias for otel-collector
+        hostnames:
+        - "otel-collector.observability.svc.cluster.local"
+      - ip: "10.43.62.145" # HostAlias for ingest-api
+        hostnames:
+        - "ingest-api.testbed.svc.cluster.local"
+      # --- END DNS FIX ---
       containers:
       - name: simulator
         image: 192.168.0.35:5000/simulator:latest
-        # Override the container's command to correctly construct the endpoint URL
-        command: ["/bin/sh", "-c"]
-        args:
-          - |
-            export OTEL_EXPORTER_OTLP_ENDPOINT="http://${HOST_IP}:32317"
-            exec python main.py
         envFrom:
         - configMapRef:
             name: app-config
@@ -34,14 +47,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        - name: HOST_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.hostIP
         resources:
           requests:
-            cpu: "200m"
+            cpu: "50m"
             memory: "128Mi"
           limits:
-            cpu: "500m"
-            memory: "256Mi"
+            cpu: "200m"
+            memory: "192Mi"

@@ -13,19 +13,15 @@ spec:
       labels:
         app: process-worker
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: clus1
+      hostAliases:
+      - ip: "10.43.138.250"
+        hostnames:
+        - "otel-collector.observability.svc.cluster.local"
       containers:
       - name: process-worker
         image: 192.168.0.35:5000/process-worker:latest
         ports:
         - containerPort: 8001
-        # Override the container's command to correctly construct the endpoint URL
-        command: ["/bin/sh", "-c"]
-        args:
-          - |
-            export OTEL_EXPORTER_OTLP_ENDPOINT="http://${HOST_IP}:32317"
-            exec python main.py
         envFrom:
         - configMapRef:
             name: app-config
@@ -36,10 +32,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
-        - name: HOST_IP
-          valueFrom:
-            fieldRef:
-              fieldPath: status.hostIP
         livenessProbe:
           httpGet:
             path: /health
@@ -54,28 +46,14 @@ spec:
           periodSeconds: 20
         resources:
           requests:
-            cpu: "200m"
-            memory: "128Mi"
+            cpu: "150m"
+            memory: "256Mi"
           limits:
             cpu: "500m"
-            memory: "256Mi"
+            memory: "384Mi"
         volumeMounts:
         - name: db-storage
           mountPath: /data
       volumes:
       - name: db-storage
-        persistentVolumeClaim:
-          claimName: sqlite-pvc
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: sqlite-pvc
-  namespace: testbed
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-  # storageClassName: <your-storage-class> # Uncomment and specify if needed
+        emptyDir: {}

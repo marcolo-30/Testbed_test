@@ -1,0 +1,6 @@
+{
+  "data": {
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "otel-collector.observability:4317",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc"
+  }
+}

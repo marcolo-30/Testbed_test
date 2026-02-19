@@ -7,9 +7,12 @@ data:
   # -- General Settings --
   REDIS_HOST: "192.168.0.35"
   DB_PATH: "/data/events.db"
-  # This will be overridden by the Downward API in the deployment specs
-  OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:32317"
   DEPLOYMENT_ENVIRONMENT: "testbed"
+
+  # -- Observability Settings --
+  # Use the NodePort endpoint without the "http://" scheme for the gRPC exporter.
+  OTEL_EXPORTER_OTLP_ENDPOINT: "192.168.0.36:30417"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
 
   # -- API Settings --
   INGEST_API_URL: "http://ingest-api.testbed.svc.cluster.local"
